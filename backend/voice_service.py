@@ -3,7 +3,7 @@ import edge_tts
 import os
 
 print("Loading Whisper model...")
-# Optimized for Speed: CUDA + float16 (if supported) or int8
+# Optimized for Speed: CUDA + float16
 try:
     whisper_model = WhisperModel("base", device="cuda", compute_type="float16")
     print("Whisper model loaded on GPU (CUDA)!")
