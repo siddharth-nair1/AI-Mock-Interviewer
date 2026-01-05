@@ -257,7 +257,9 @@
     <audio id="audioPlayer" style="display:none;"></audio>
 
     <script>
-        const API_BASE = "";
+        // If loaded from file (double-click), point to localhost. If served, use relative path.
+        const API_BASE = window.location.protocol === 'file:' ? "http://127.0.0.1:8000" : "";
+        console.log("API Base URL:", API_BASE);
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
