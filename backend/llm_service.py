@@ -31,7 +31,7 @@ def call_llm(prompt, provider="ollama", json_mode=False):
             print("Calling Gemini 2.5 Flash...")
             # Strictly use gemini-2.5-flash as requested
             try:
-                model = genai.GenerativeModel('gemini-2.5-flash')
+                model = genai.GenerativeModel('gemini-2.5-flash-lite')
                 response = model.generate_content(prompt)
                 return response.text.strip()
             except Exception as e:
