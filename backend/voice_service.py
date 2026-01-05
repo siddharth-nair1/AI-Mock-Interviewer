@@ -58,11 +58,15 @@ async def text_to_speech(text, output_path):
         
         # Clean text
         text = ' '.join(text.replace('\n', ' ').replace('\r', ' ').split())
+        
+        # Add slight pauses for punctuation (Edge TTS handles this well, but we ensure cleanliness)
+        text = text.replace('.', '. ').replace(',', ', ').replace('?', '? ').replace('!', '! ')
+        
         if len(text) > 500:
             text = text[:497] + "..."
         
         # Choose voice
-        voice = "en-US-GuyNeural"  # Change to: AriaNeural, SaraNeural, GuyNeural, etc.
+        voice = "en-US-ChristopherNeural"
         
         # Generate speech
         communicate = edge_tts.Communicate(text, voice)

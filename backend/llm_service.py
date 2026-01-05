@@ -47,10 +47,10 @@ def call_llm(prompt, context=""):
         print(f"Error calling LLM: {str(e)}")
         raise
 
-def generate_interview_questions(resume_text, jd_text):
-    """Analyze resume and JD, generate interview questions"""
+def generate_initial_question(resume_text, jd_text):
+    """Analyze resume and JD, generate the FIRST interview question only."""
     
-    # Truncate if too long (to fit in context window)
+    # Truncate if too long
     max_resume_length = 2000
     max_jd_length = 2000
     
@@ -60,7 +60,10 @@ def generate_interview_questions(resume_text, jd_text):
     if len(jd_text) > max_jd_length:
         jd_text = jd_text[:max_jd_length] + "..."
     
-    prompt = f"""You are an expert technical interviewer. Analyze the following resume and job description, then generate exactly 10 interview questions.
+    prompt = f"""You are a Senior Technical Interviewer. Be professional but critical.
+    
+Analyze the following resume and job description.
+Your task is to start the interview.
 
 RESUME:
 {resume_text}
@@ -68,53 +71,45 @@ RESUME:
 JOB DESCRIPTION:
 {jd_text}
 
-Generate 10 questions in this format:
-1. [Question]
-2. [Question]
-3. [Question]
-4. [Question]
-5. [Question]
-6. [Question]
-7. [Question]
-8. [Question]
-9. [Question]
-10. [Question]
+Output ONLY the opening greeting and the first question.
+Example: "Hello, I've reviewed your resume. Let's start. Tell me about your experience with..."
 
-Focus on:
-- Technical skills mentioned in the resume and required by the JD
-- Behavioral questions (STAR format)
-- Experience verification
-- Problem-solving scenarios
+Do not generate a list. Just the single opening interaction."""
 
-Generate the questions now:"""
-
-    print("Generating interview questions...")
+    print("Generating initial question...")
     response = call_llm(prompt)
-    print("Questions generated successfully!")
+    print("Initial question generated!")
     return response
 
-def generate_interviewer_response(conversation_history, candidate_answer):
-    """Generate follow-up question or move to next question"""
+def generate_interviewer_response(conversation_history, candidate_answer, resume_context=""):
+    """Generate the next question dynamically based on the answer."""
     
     # Truncate history if too long
-    if len(conversation_history) > 3000:
-        conversation_history = "...[previous conversation]...\n" + conversation_history[-3000:]
+    if len(conversation_history) > 4000:
+        conversation_history = "...[previous conversation]...\n" + conversation_history[-4000:]
     
-    prompt = f"""You are conducting a job interview. Here's the conversation so far:
+    prompt = f"""You are a Senior Technical Interviewer.
+    
+CONTEXT (Resume/JD summary):
+{resume_context[:1000]}...
 
+CONVERSATION HISTORY:
 {conversation_history}
 
-The candidate just said: "{candidate_answer}"
+CANDIDATE'S LAST ANSWER:
+"{candidate_answer}"
 
-Your task:
-- If the answer is too brief or unclear, ask ONE specific follow-up question
-- If the answer is complete, acknowledge it briefly and ask the next question from your list
-- Keep responses concise and professional (2-3 sentences maximum)
-- Sound natural, like a human interviewer
+YOUR TASK:
+1. Analyze the candidate's answer.
+2. If the answer is vague or buzzword-heavy, ask a specific follow-up technical question to test depth.
+3. If the answer is good, acknowledge it briefly and move to a new relevant topic based on the Resume/JD.
+4. If the candidate claims a skill, ask a specific technical question about it.
 
-Your response:"""
+Output ONLY your next response (spoken text). Do not include "Interviewer:" prefix.
+Keep it under 3 sentences. Be professional but critical.
+"""
 
-    print("Generating interviewer response...")
+    print("Generating dynamic interviewer response...")
     response = call_llm(prompt)
     print("Response generated!")
     return response
