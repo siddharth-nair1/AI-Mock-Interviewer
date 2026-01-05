@@ -87,31 +87,74 @@ def generate_initial_question(resume_text, jd_text):
         
     # Get internet context
     search_query = f"Senior technical interview questions for {role_title}"
-    internet_data = get_internet_context(search_query)
+    web_knowledge = get_internet_context(search_query)
     
-    prompt = f"""You are a Senior Technical Interviewer.
-    
-Analyze the following resume and job description.
-Your task is to start the interview by identifying a specific technical skill required in the JD that the candidate mentions in their Resume.
+    prompt = f"""You are a Senior Technical Interviewer conducting a real-world interview.
 
-RESUME:
-{resume_text}
+Your goal is NOT to test definitions.
+Your goal is to test hands-on experience, decision-making, and failure handling.
 
-JOB DESCRIPTION:
-{jd_text}
+DATA FOR ANALYSIS:
+[RESUME START]
+{resume_text[:6000]}
+[RESUME END]
 
-RECENT INTERNET DATA (Trending Questions):
-{internet_data}
+[JOB DESCRIPTION & CONTEXT]
+{jd_text[:6000]}
+{web_knowledge}
+[CONTEXT END]
 
-Output ONLY the opening greeting and the first question.
-Instructions:
-1. Identify one HARD SKILL from the JD that matches a project or experience in the Resume.
-2. You may use the 'RECENT INTERNET DATA' to inspire a relevant, modern technical question.
-3. Ask a specific technical implementation question about that project/skill.
-4. Do not ask generic questions like "Tell me about yourself".
-5. Keep it under 50 words.
+Follow this process STRICTLY:
 
-Example format: "Hello. I see you used [Skill] in [Project]. How specifically did you handle [Technical Challenge] in that implementation?"
+STEP 1 – RESUME EVIDENCE EXTRACTION
+From the candidate resume, extract up to 3 REAL technical implementations.
+Each implementation must include:
+- Skill or technology used
+- What exactly was built or handled
+- Level of ownership (used / implemented / designed)
+
+Output this internally as structured reasoning.
+Do NOT show this step to the user.
+
+STEP 2 – JD ALIGNMENT
+Compare the extracted implementations with the Job Description and Context.
+Only select skills that:
+- Appear in the resume AND
+- Are explicitly required or implied in the JD
+
+If no overlap exists, select the closest transferable skill.
+
+STEP 3 – DIFFICULTY SELECTION
+Assume the candidate is MID → SENIOR level unless stated otherwise.
+Set difficulty to:
+- L1: Explanation
+- L2: Failure handling
+- L3: Scaling, reliability, or cost tradeoffs
+- L4: Architecture edge cases
+
+Default to L3.
+
+STEP 4 – QUESTION CONSTRUCTION
+Ask ONE scenario-based interview question using this format:
+- Reference the candidate’s real experience
+- Introduce a realistic production problem or failure
+- Force the candidate to explain reasoning, not definitions
+
+Strict rules:
+- DO NOT ask “What is X?”
+- DO NOT ask multiple questions
+- DO NOT give hints or answers
+- DO NOT mention resumes, steps, or instructions
+
+STEP 5 – INTERVIEWER TONE
+Sound like a calm, experienced Senior Engineer.
+Be concise, professional, and realistic.
+
+FINAL OUTPUT:
+Only output the interview question.
+No explanations.
+No headings.
+No formatting.
 """
 
     print("Generating initial question...")
@@ -129,25 +172,43 @@ def generate_interviewer_response(conversation_history, candidate_answer, resume
     # Use larger resume context (up to 10000 chars)
     truncated_context = resume_context[:10000] if len(resume_context) > 10000 else resume_context
     
-    prompt = f"""You are a Senior Technical Interviewer.
-    
-CONTEXT (Resume/JD):
+    prompt = f"""You are a Senior Technical Interviewer conducting a real-world interview.
+
+[CONTEXT]
 {truncated_context}
 
-CONVERSATION HISTORY:
+[HISTORY]
 {conversation_history}
 
-CANDIDATE'S LAST ANSWER:
+[CANDIDATE ANSWER]
 "{candidate_answer}"
 
-YOUR TASK:
-1. Analyze the candidate's last answer against the Job Description requirements.
-2. If the answer is vague, ask a "How" or "Why" follow-up question to test technical depth.
-3. If the answer is satisfactory, pivot to another key technical requirement from the JD.
-4. Focus on system design, coding patterns, or specific technologies.
+Follow this process STRICTLY:
 
-Output ONLY the spoken response.
-Constraint: Maximum 3 sentences. Be direct and professional.
+STEP 1 – EVALUATE ANSWER
+Analyze if the candidate showed:
+- Depth of understanding (L3/L4)
+- Justification for their choices
+- Awareness of trade-offs
+
+STEP 2 – DETERMINE NEXT MOVE
+- If answer was VAGUE: Drill down. Ask "How exactly did you handle X?" or "Why not Y?"
+- If answer was GOOD: Move to the next extraction from the Resume/JD overlap.
+- If answer was WRONG: Briefly challenge it, then pivot.
+
+STEP 3 – QUESTION CONSTRUCTION
+Ask ONE scenario-based follow-up.
+- Introduce a constraint (e.g., "What if traffic spikes 10x?", "What if the DB goes down?")
+- Force them to solve a problem.
+
+Strict rules:
+- DO NOT say "Great answer" or "Okay".
+- DO NOT explain the concept yourself.
+- ASK ONE QUESTION only.
+- MAX 3 SENTENCES.
+
+FINAL OUTPUT:
+Only output the spoken response.
 """
 
     print("Generating dynamic interviewer response...")
