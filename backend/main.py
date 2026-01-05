@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, UploadFile, File, WebSocket, Request, Response, Cookie
+from fastapi import FastAPI, UploadFile, File, Form, WebSocket, Request, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse
@@ -77,7 +77,7 @@ async def upload_documents(
     request: Request,
     resume: UploadFile = File(...),
     job_description: UploadFile = File(...),
-    provider: str = "ollama"  # Default to ollama if not sent
+    provider: str = Form("ollama")  # Explicitly read from Form data
 ):
     """Handle resume and JD upload, then generate first question"""
     session_id = request.state.session_id
