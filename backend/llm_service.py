@@ -10,7 +10,10 @@ def call_llm(prompt, context=""):
         payload = {
             "model": "llama3.2:3b",
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "options": {
+                "temperature": 0.3
+            }
         }
         
         print(f"Calling Ollama API at {OLLAMA_API}...")
@@ -50,9 +53,9 @@ def call_llm(prompt, context=""):
 def generate_initial_question(resume_text, jd_text):
     """Analyze resume and JD, generate the FIRST interview question only."""
     
-    # Truncate if too long
-    max_resume_length = 2000
-    max_jd_length = 2000
+    # Use larger context window
+    max_resume_length = 8000
+    max_jd_length = 8000
     
     if len(resume_text) > max_resume_length:
         resume_text = resume_text[:max_resume_length] + "..."
@@ -63,7 +66,7 @@ def generate_initial_question(resume_text, jd_text):
     prompt = f"""You are a Senior Technical Interviewer.
     
 Analyze the following resume and job description.
-Your task is to start the interview.
+Your task is to start the interview by identifying a specific technical skill required in the JD that the candidate mentions in their Resume.
 
 RESUME:
 {resume_text}
@@ -72,8 +75,13 @@ JOB DESCRIPTION:
 {jd_text}
 
 Output ONLY the opening greeting and the first question.
-Keep it short (under 30 words).
-Example: "Hi, I've reviewed your profile. Let's discuss your experience with Python. Can you elaborate?"
+Instructions:
+1. Identify one HARD SKILL from the JD that matches a project or experience in the Resume.
+2. Ask a specific technical implementation question about that project/skill.
+3. Do not ask generic questions like "Tell me about yourself".
+4. Keep it under 50 words.
+
+Example format: "Hello. I see you used [Skill] in [Project]. How specifically did you handle [Technical Challenge] in that implementation?"
 """
 
     print("Generating initial question...")
@@ -84,14 +92,17 @@ Example: "Hi, I've reviewed your profile. Let's discuss your experience with Pyt
 def generate_interviewer_response(conversation_history, candidate_answer, resume_context=""):
     """Generate the next question dynamically based on the answer."""
     
-    # Truncate history if too long
+    # Truncate history if too long, but keep context larger
     if len(conversation_history) > 4000:
         conversation_history = "...[previous conversation]...\n" + conversation_history[-4000:]
     
+    # Use larger resume context (up to 10000 chars)
+    truncated_context = resume_context[:10000] if len(resume_context) > 10000 else resume_context
+    
     prompt = f"""You are a Senior Technical Interviewer.
     
-CONTEXT (Resume/JD summary):
-{resume_context[:1000]}...
+CONTEXT (Resume/JD):
+{truncated_context}
 
 CONVERSATION HISTORY:
 {conversation_history}
@@ -100,13 +111,13 @@ CANDIDATE'S LAST ANSWER:
 "{candidate_answer}"
 
 YOUR TASK:
-1. Analyze the answer.
-2. Ask the next logical question (technical or behavioral).
-3. Be CRITICAL. If they missed something, probe it.
+1. Analyze the candidate's last answer against the Job Description requirements.
+2. If the answer is vague, ask a "How" or "Why" follow-up question to test technical depth.
+3. If the answer is satisfactory, pivot to another key technical requirement from the JD.
+4. Focus on system design, coding patterns, or specific technologies.
 
 Output ONLY the spoken response.
-CRITICAL CONSTRAINT: MAX 2 SENTENCES. MAX 40 WORDS.
-Do not say "Good answer" or "Okay". Just ask the question.
+Constraint: Maximum 3 sentences. Be direct and professional.
 """
 
     print("Generating dynamic interviewer response...")
