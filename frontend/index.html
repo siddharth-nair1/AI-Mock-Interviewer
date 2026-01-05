@@ -3,242 +3,355 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Interview Call</title>
+    <title>AI Mock Interviewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #1a1a1a;
-            --panel-bg: #2d2d2d;
-            --control-bg: #333;
-            --primary: #0b5cff;
-            --danger: #ff4444;
-            --text-light: #fff;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-light: #f3f4f6;
+            --surface: #ffffff;
+            --text-main: #111827;
+            --text-sub: #6b7280;
+            --border: #e5e7eb;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            background-color: black;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: var(--text-light);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
             height: 100vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
-        /* Setup Modal */
-        #setupModal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 100;
+        /* --- Animations --- */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .hidden { display: none !important; }
+
+        /* --- Landing Page --- */
+        #landing-page {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .landing-left {
+            flex: 1;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+        }
+
+        .landing-right {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(8px);
-        }
-
-        .modal-content {
-            background: #1e1e1e;
-            padding: 2rem;
-            border-radius: 12px;
-            width: 400px;
-            text-align: center;
-            border: 1px solid #333;
-        }
-
-        input[type="file"] {
-            background: #333;
-            color: white;
-            padding: 10px;
-            border-radius: 6px;
-            width: 100%;
-            margin: 10px 0;
-            border: 1px solid #444;
-        }
-
-        /* Main Video Area */
-        .video-grid {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 1fr;
+            background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
             position: relative;
-            background: #121212;
         }
 
-        /* AI Avatar (Main View) */
-        .interviewer-view {
+        h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+        p.subtitle { color: var(--text-sub); margin-bottom: 2rem; font-size: 1.1rem; }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            background: #f9fafb;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .upload-icon { font-size: 2rem; color: var(--text-sub); margin-bottom: 10px; }
+        .file-name { margin-top: 10px; font-weight: 500; color: var(--primary); font-size: 0.9rem; }
+
+        .start-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 3rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .start-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(79, 70, 229, 0.3);
+        }
+
+        .start-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+        /* --- Interview Interface --- */
+        #interview-page {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            background: white;
+        }
+
+        .video-section {
+            flex: 3;
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            background: #f8fafc;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-card {
+            flex: 1;
+            height: 80vh;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-card video {
             width: 100%;
             height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .ai-avatar-container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1f2937, #111827);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
         }
 
-        .avatar-circle {
-            width: 150px;
-            height: 150px;
+        .ai-avatar {
+            width: 200px;
+            height: 200px;
             border-radius: 50%;
-            background: #444;
-            overflow: hidden;
-            border: 3px solid #666;
-            position: relative;
-            transition: all 0.2s;
+            border: 4px solid rgba(255,255,255,0.1);
+            object-fit: cover;
+            transition: all 0.3s ease;
         }
 
-        .avatar-circle.speaking {
-            border-color: #0b5cff;
-            box-shadow: 0 0 30px rgba(11, 92, 255, 0.4);
+        .ai-avatar.speaking {
+            border-color: var(--success);
+            box-shadow: 0 0 50px rgba(16, 185, 129, 0.3);
             transform: scale(1.05);
         }
 
-        .avatar-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .interviewer-name {
-            margin-top: 1rem;
-            font-size: 1.2rem;
-            font-weight: 500;
-        }
-
-        .status-badge {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            color: #888;
-            background: rgba(0,0,0,0.3);
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-
-        /* User Video (PIP) */
-        .user-view {
+        .name-tag {
             position: absolute;
-            bottom: 100px;
-            right: 20px;
-            width: 280px;
-            height: 160px;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid #333;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* Mirror effect */
-        }
-
-        /* Subtitles / Chat Overlay */
-        .captions {
-            position: absolute;
-            bottom: 120px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px 20px;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 5px 12px;
             border-radius: 8px;
-            font-size: 1.1rem;
-            max-width: 80%;
-            text-align: center;
-            display: none;
+            font-size: 0.9rem;
+            backdrop-filter: blur(4px);
         }
 
-        /* Bottom Control Bar */
-        .controls-bar {
-            height: 80px;
-            background: #1a1a1a;
+        /* Sidebar */
+        .sidebar {
+            flex: 1;
+            max-width: 400px;
+            background: white;
+            border-left: 1px solid var(--border);
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            border-top: 1px solid #333;
+            flex-direction: column;
+            padding: 0;
         }
 
-        .btn {
-            width: 50px;
-            height: 50px;
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h2 { font-size: 1.2rem; font-weight: 600; }
+        .sidebar-status { font-size: 0.9rem; color: var(--success); margin-top: 5px; font-weight: 500; }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: #f9fafb;
+        }
+
+        .msg {
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            max-width: 90%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .msg.ai {
+            background: white;
+            align-self: flex-start;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .msg.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+        }
+
+        /* Controls */
+        .controls-area {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            background: white;
+            text-align: center;
+        }
+
+        .mic-btn {
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             border: none;
-            background: #333;
+            background: var(--primary);
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.8rem;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            margin: 0 auto;
         }
 
-        .btn:hover { background: #444; }
-        
-        .btn.primary { background: var(--primary); }
-        .btn.primary:hover { background: #004ad7; }
-        
-        .btn.danger { background: var(--danger); }
-        .btn.danger:hover { background: #cc0000; }
+        .mic-btn:hover { transform: scale(1.05); }
+        .mic-btn.active { background: var(--danger); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
+        .mic-hint { margin-top: 10px; color: var(--text-sub); font-size: 0.85rem; }
 
-        .btn.active {
-            background: white;
-            color: black;
+        /* Loader */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
         }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- Setup Modal -->
-    <div id="setupModal">
-        <div class="modal-content">
-            <h2>💼 Pre-Interview Setup</h2>
-            <p style="color:#aaa; font-size:0.9rem">Upload your resume & job description</p>
+    <!-- PAGE 1: LANDING -->
+    <div id="landing-page">
+        <div class="landing-left">
+            <h1>Setup Interview</h1>
+            <p class="subtitle">Upload your documents to generate a personalized AI interview session.</p>
             
-            <input type="file" id="resume" accept=".pdf,.txt">
-            <input type="file" id="jd" accept=".pdf,.txt">
-            
-            <button onclick="startInterview()" class="btn primary" style="width:100%; border-radius:8px; margin-top:10px;">
+            <div class="upload-zone" onclick="document.getElementById('resume').click()">
+                <div class="upload-icon">📄</div>
+                <div><strong>Upload Resume</strong></div>
+                <div class="text-sm text-gray-500">PDF or TXT</div>
+                <div id="resume-name" class="file-name"></div>
+                <input type="file" id="resume" accept=".pdf,.txt" hidden onchange="updateFileName('resume')">
+            </div>
+
+            <div class="upload-zone" onclick="document.getElementById('jd').click()">
+                <div class="upload-icon">💼</div>
+                <div><strong>Upload Job Description</strong></div>
+                <div class="text-sm text-gray-500">PDF or TXT</div>
+                <div id="jd-name" class="file-name"></div>
+                <input type="file" id="jd" accept=".pdf,.txt" hidden onchange="updateFileName('jd')">
+            </div>
+
+            <div id="error-msg" style="color:var(--danger); margin-bottom:1rem; display:none;"></div>
+        </div>
+
+        <div class="landing-right">
+            <button id="startBtn" class="start-btn" onclick="startSetup()">
                 Start Interview
             </button>
-            <p id="status" style="margin-top:10px; font-size:0.8rem; color:#aaa"></p>
         </div>
     </div>
 
-    <!-- Main Call Interface -->
-    <div class="video-grid">
-        <!-- Interviewer (AI) -->
-        <div class="interviewer-view">
-            <div class="avatar-circle" id="aiAvatar">
-                <!-- Placeholder Avatar -->
-                <img src="https://ui-avatars.com/api/?name=AI+Interviewer&background=0D8ABC&color=fff&size=150" class="avatar-img">
+    <!-- PAGE 2: INTERVIEW -->
+    <div id="interview-page" class="hidden">
+        <!-- Video Area -->
+        <div class="video-section">
+            <!-- User Stream -->
+            <div class="video-card">
+                <video id="userVideo" autoplay muted playsinline></video>
+                <div class="name-tag">You</div>
             </div>
-            <div class="interviewer-name">Sarah (Interviewer)</div>
-            <div class="status-badge" id="aiStatus">Connecting...</div>
+
+            <!-- AI Stream -->
+            <div class="video-card">
+                <div class="ai-avatar-container">
+                    <img src="https://ui-avatars.com/api/?name=AI&background=random&color=fff&size=200" class="ai-avatar" id="aiAvatar">
+                </div>
+                <div class="name-tag">Sarah (AI Interviewer)</div>
+            </div>
         </div>
 
-        <!-- Captions -->
-        <div class="captions" id="captions"></div>
+        <!-- Right Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Transcript</h2>
+                <div class="sidebar-status" id="statusText">Connecting...</div>
+            </div>
 
-        <!-- User Video (PIP) -->
-        <div class="user-view">
-            <video id="userVideo" autoplay muted playsinline></video>
-            <div style="position:absolute; bottom:5px; left:10px; font-size:0.8rem; background:rgba(0,0,0,0.5); padding:2px 5px; border-radius:4px;">You</div>
+            <div class="chat-area" id="chat">
+                <div class="msg ai">
+                    Hello! I'm reviewing your documents now. I'll be with you in a moment.
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <button class="mic-btn" id="micBtn" onclick="toggleRecording()">
+                    🎙️
+                </button>
+                <p class="mic-hint" id="micHint">Tap to Speak</p>
+            </div>
         </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="controls-bar">
-        <button class="btn" onclick="toggleMute()" id="muteBtn">🎤</button>
-        <!-- <button class="btn" onclick="toggleVideo()">📷</button> -->
-        <button class="btn primary" id="talkBtn" onclick="toggleTalking()">
-            🎙️ Tap to Speak
-        </button>
-        <button class="btn danger" onclick="location.reload()">📞</button>
     </div>
 
     <audio id="audioPlayer" style="display:none"></audio>
@@ -249,31 +362,41 @@
         let audioChunks = [];
         let isRecording = false;
 
-        // Initialize User Camera
+        function updateFileName(type) {
+            const input = document.getElementById(type);
+            const display = document.getElementById(type + '-name');
+            if (input.files && input.files[0]) {
+                display.innerText = "Selected: " + input.files[0].name;
+            }
+        }
+
+        // Initialize Camera early
         async function initCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 document.getElementById('userVideo').srcObject = stream;
             } catch (e) {
-                console.error("Camera error:", e);
-                alert("Please enable camera access for the interview.");
+                console.error("Camera access denied", e);
             }
         }
         initCamera();
 
-        async function startInterview() {
+        async function startSetup() {
             const resume = document.getElementById('resume').files[0];
             const jd = document.getElementById('jd').files[0];
-            const status = document.getElementById('status');
+            const btn = document.getElementById('startBtn');
+            const err = document.getElementById('error-msg');
 
             if (!resume || !jd) {
-                status.innerText = "Please upload both files";
-                status.style.color = "#ff4444";
+                err.innerText = "Please select both files.";
+                err.style.display = "block";
                 return;
             }
 
-            status.innerText = "Analyzing profile... (This takes ~30s)";
-            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader"></div> Preparing...';
+            err.style.display = "none";
+
             const formData = new FormData();
             formData.append('resume', resume);
             formData.append('job_description', jd);
@@ -287,49 +410,72 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    document.getElementById('setupModal').classList.add('hidden');
+                    // Switch to Interview Page
+                    document.getElementById('landing-page').classList.add('hidden');
+                    document.getElementById('interview-page').classList.remove('hidden');
+                    document.getElementById('interview-page').classList.add('fade-in');
+                    
                     updateStatus("Speaking...");
-                    showCaption(data.question);
+                    addMessage(data.question, 'ai');
                     playAudio(data.audio_url);
                 } else {
-                    status.innerText = "Error: " + data.message;
+                    err.innerText = data.message || "Upload failed.";
+                    err.style.display = "block";
+                    btn.disabled = false;
+                    btn.innerText = "Start Interview";
                 }
             } catch (e) {
-                status.innerText = "Connection Error";
+                err.innerText = "Connection Error: " + e.message;
+                err.style.display = "block";
+                btn.disabled = false;
+                btn.innerText = "Start Interview";
             }
         }
 
-        async function toggleTalking() {
-            const btn = document.getElementById('talkBtn');
-            const status = document.getElementById('aiStatus');
+        function addMessage(text, sender) {
+            const chat = document.getElementById('chat');
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+            div.innerText = text;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function updateStatus(text) {
+            document.getElementById('statusText').innerText = text;
+        }
+
+        async function toggleRecording() {
+            const btn = document.getElementById('micBtn');
+            const hint = document.getElementById('micHint');
 
             if (!isRecording) {
-                // START RECORDING
+                // START
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
-
+                    
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = () => submitAnswer();
-
+                    mediaRecorder.onstop = submitAnswer;
+                    
                     mediaRecorder.start();
                     isRecording = true;
-                    btn.classList.add('danger'); // Turn red
-                    btn.innerText = "⏹️ Stop & Send";
-                    updateStatus("Listening to you...");
-                    document.getElementById('aiAvatar').style.opacity = "0.5";
+                    btn.classList.add('active');
+                    btn.innerText = "⏹️";
+                    hint.innerText = "Listening... Tap to Stop";
+                    updateStatus("Listening...");
                 } catch (e) {
-                    alert("Mic error");
+                    alert("Microphone error");
                 }
             } else {
-                // STOP RECORDING
+                // STOP
                 mediaRecorder.stop();
                 isRecording = false;
-                btn.classList.remove('danger');
-                btn.innerText = "🎙️ Tap to Speak";
+                btn.classList.remove('active');
+                btn.innerText = "🎙️";
+                hint.innerText = "Sending...";
                 updateStatus("Thinking...");
-                document.getElementById('aiAvatar').style.opacity = "1";
             }
         }
 
@@ -340,6 +486,9 @@
             const formData = new FormData();
             formData.append('audio', blob, 'answer.webm');
 
+            // Optimistic UI
+            // addMessage("... (Audio Sent)", 'user');
+
             try {
                 const res = await fetch(`${API_BASE}/answer`, {
                     method: 'POST',
@@ -349,13 +498,17 @@
                 const data = await res.json();
 
                 if (data.error) {
-                    alert("Error: " + data.error);
+                    addMessage("Error: " + data.error, 'ai');
                 } else {
-                    showCaption(data.interviewer_response);
-                    playAudio(data.audio_url);
+                    addMessage(data.transcription, 'user');
+                    setTimeout(() => {
+                        addMessage(data.interviewer_response, 'ai');
+                        playAudio(data.audio_url);
+                    }, 500);
                 }
             } catch (e) {
                 console.error(e);
+                updateStatus("Error sending audio");
             }
         }
 
@@ -374,21 +527,6 @@
                 avatar.classList.remove('speaking');
                 updateStatus("Waiting for your response...");
             };
-        }
-
-        function updateStatus(text) {
-            document.getElementById('aiStatus').innerText = text;
-        }
-
-        function showCaption(text) {
-            const cap = document.getElementById('captions');
-            cap.style.display = 'block';
-            cap.innerText = text;
-            setTimeout(() => { cap.style.display = 'none'; }, 8000);
-        }
-
-        function toggleMute() {
-            alert("Mute toggled (Visual only for now)");
         }
     </script>
 </body>
