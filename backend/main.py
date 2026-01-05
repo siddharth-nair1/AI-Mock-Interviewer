@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, WebSocket, Request, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.concurrency import run_in_threadpool
 import shutil
 import os
@@ -13,7 +13,7 @@ from voice_service import transcribe_audio, text_to_speech
 
 app = FastAPI()
 
-# Enable CORS
+# Enable CORS (Still good to have, but less critical if served from same origin)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,7 +32,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.get("/")
 async def root():
-    return {"status": "running", "message": "AI Interviewer Backend is running!"}
+    return FileResponse("frontend/index.html")
 
 @app.get("/health")
 async def health():
