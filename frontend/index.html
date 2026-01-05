@@ -257,7 +257,7 @@
     <audio id="audioPlayer" style="display:none;"></audio>
 
     <script>
-        const API_BASE = "http://127.0.0.1:8000";
+        const API_BASE = "";
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
@@ -330,7 +330,8 @@
                     btn.disabled = false;
                 }
             } catch (e) {
-                status.innerText = "Connection error.";
+                console.error(e);
+                status.innerText = "Error: " + e.message;
                 status.style.color = "red";
                 btn.disabled = false;
             }
