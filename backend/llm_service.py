@@ -1,13 +1,17 @@
 import requests
 import json
 import os
-import google.generativeai as genai
+from google import genai
 from ddgs import DDGS
 
-# Configure Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
 OLLAMA_API = "http://localhost:11434/api/generate"
+
+# Initialize Gemini Client
+try:
+    gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+except Exception as e:
+    print(f"Warning: Gemini Client Init Failed: {e}")
+    gemini_client = None
 
 def get_internet_context(query):
     """Fetch search results for the given query using DuckDuckGo"""
@@ -29,21 +33,21 @@ def call_llm(prompt, provider="ollama", json_mode=False):
     if provider == "gemini":
         try:
             print("Calling Gemma 3 27B IT...")
-            # Strictly use gemma-3-27b-it as requested
-            try:
-                model = genai.GenerativeModel('gemma-3-27b-it')
-                response = model.generate_content(prompt)
+            if not gemini_client:
+                raise Exception("Gemini client not initialized. Check API Key.")
+                
+            response = gemini_client.models.generate_content(
+                model='gemma-3-27b-it',
+                contents=prompt
+            )
+            
+            if response.text:
                 return response.text.strip()
-            except Exception as e:
-                print(f"Gemma 3 failed: {e}")
-                print("DEBUG: Listing available models to help fix the name:")
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        print(f" - {m.name}")
-                raise e
-
+            else:
+                return "Error: Empty response from Gemini."
+                
         except Exception as e:
-            print(f"Gemini Error: {e}")
+            print(f"Gemma 3 failed: {e}")
             raise Exception(f"Gemini API Error: {str(e)}")
 
     else: # Default to Ollama
@@ -79,7 +83,7 @@ def generate_initial_question(resume_text, jd_text, provider="ollama"):
         # --- GEMINI MODE (Skeptical/Advanced) ---
         print("Using Gemini Mode for Initial Question...")
         
-        # Step A: Get Targets (No truncation needed for Flash)
+        # Step A: Get Targets
         target_prompt = f"""Analyze the Resume and JD. 
         RESUME: {resume_text}
         JD: {jd_text}
@@ -168,8 +172,12 @@ Output ONLY the spoken response. MAX 2 SENTENCES.
         prompt = f"""Senior Interviewer.
 CONTEXT: {resume_context}
 HISTORY: {conversation_history}
-ANSWER: "{candidate_answer}"""
-        prompt += "\n\nIf answer is vague, ask \"How specifically?\".\nIf answer is good, ask next technical question.\nOutput ONLY the response. Max 2 sentences."
+ANSWER: "{candidate_answer}"
+
+If answer is vague, ask "How specifically?".
+If answer is good, ask next technical question.
+Output ONLY the response. Max 2 sentences.
+"""
         response = call_llm(prompt, provider="ollama")
     
     # Post-processing cleanup (for both)
