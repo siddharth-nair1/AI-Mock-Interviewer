@@ -439,6 +439,29 @@
                 </div>
             </div>
 
+            <!-- AI Model Selection -->
+            <div class="input-group" style="padding: 1rem;">
+                <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-main);">🤖 Interviewer Intelligence</label>
+                
+                <div style="display:flex; gap:1rem;">
+                    <label style="flex:1; cursor:pointer; background:#fff; padding:10px; border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; gap:8px;">
+                        <input type="radio" name="ai-mode" value="ollama" checked>
+                        <div>
+                            <div style="font-weight:600; font-size:0.9rem;">Local (Fast)</div>
+                            <div style="font-size:0.75rem; color:var(--text-sub);">Ollama / Phi-3</div>
+                        </div>
+                    </label>
+
+                    <label style="flex:1; cursor:pointer; background:#fff; padding:10px; border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; gap:8px;">
+                        <input type="radio" name="ai-mode" value="gemini">
+                        <div>
+                            <div style="font-weight:600; font-size:0.9rem;">Cloud (Smart)</div>
+                            <div style="font-size:0.75rem; color:var(--text-sub);">Gemini 1.5 Flash</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <div id="error-msg" style="color:var(--danger); margin-bottom:1rem; display:none;"></div>
         </div>
 
@@ -628,6 +651,10 @@
             const formData = new FormData();
             formData.append('resume', resume);
             formData.append('job_description', jdFile);
+            
+            // Add Provider
+            const provider = document.querySelector('input[name="ai-mode"]:checked').value;
+            formData.append('provider', provider);
 
             try {
                 const res = await fetch(`${API_BASE}/upload`, {

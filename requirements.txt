@@ -10,3 +10,4 @@ piper-tts
 gtts
 edge-tts
 ddgs
+google-generativeai

@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, WebSocket, Request, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -73,7 +76,8 @@ def get_session(session_id: str):
 async def upload_documents(
     request: Request,
     resume: UploadFile = File(...),
-    job_description: UploadFile = File(...)
+    job_description: UploadFile = File(...),
+    provider: str = "ollama"  # Default to ollama if not sent
 ):
     """Handle resume and JD upload, then generate first question"""
     session_id = request.state.session_id
@@ -82,6 +86,7 @@ async def upload_documents(
     try:
         print(f"\n{'='*50}")
         print(f"NEW UPLOAD REQUEST (Session: {session_id})")
+        print(f"Provider: {provider}")
         
         # 1. Read files into memory (Async)
         print("Reading files into memory...")
@@ -105,6 +110,7 @@ async def upload_documents(
         
         session["resume_text"] = resume_text
         session["jd_text"] = jd_text
+        session["provider"] = provider
         
         # 3. Save files to disk (for record keeping only)
         # We do this AFTER processing is initiated so it doesn't block or error the user response
@@ -121,7 +127,7 @@ async def upload_documents(
 
         # 4. Generate initial question (blocking -> threadpool)
         print("Generating initial question...")
-        initial_question = await run_in_threadpool(generate_initial_question, resume_text, jd_text)
+        initial_question = await run_in_threadpool(generate_initial_question, resume_text, jd_text, provider)
         
         session["history"] = f"Interviewer: {initial_question}\n"
         session["question_count"] = 1
@@ -170,11 +176,14 @@ async def process_answer(request: Request, audio: UploadFile = File(...)):
         # Generate next question (blocking -> threadpool)
         # Pass resume context for better questions
         context = session["resume_text"] + "\n\n" + session["jd_text"]
+        provider = session.get("provider", "ollama")
+        
         interviewer_response = await run_in_threadpool(
             generate_interviewer_response, 
             session["history"], 
             candidate_answer,
-            context
+            context,
+            provider
         )
         
         session["history"] += f"Interviewer: {interviewer_response}\n"
