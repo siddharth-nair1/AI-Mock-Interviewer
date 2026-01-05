@@ -101,8 +101,8 @@ INPUTS YOU WILL RECEIVE:
 3. A list of interview targets extracted from resume ∩ JD
 
 DATA:
-1. RESUME: {{ "content": "{resume_text[:6000].replace('"', "'"')}" }}
-2. JOB DESCRIPTION: {{ "content": "{jd_text[:6000].replace('"', "'"')}" }}
+1. RESUME: {{ "content": "{resume_text[:6000].replace('"', "'")}" }}
+2. JOB DESCRIPTION: {{ "content": "{jd_text[:6000].replace('"', "'")}" }}
 3. INTERVIEW TARGETS: {interview_targets}
 
 YOUR ROLE:
