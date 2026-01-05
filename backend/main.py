@@ -79,11 +79,22 @@ async def upload_documents(
         resume_path = f"uploads/{session_id}_resume.pdf"
         jd_path = f"uploads/{session_id}_jd.pdf"
         
-        with open(resume_path, "wb") as buffer:
-            shutil.copyfileobj(resume.file, buffer)
-        with open(jd_path, "wb") as buffer:
-            shutil.copyfileobj(job_description.file, buffer)
-        
+        # Save Resume
+        resume_content = await resume.read()
+        with open(resume_path, "wb") as f:
+            f.write(resume_content)
+            
+        # Save JD
+        jd_content = await job_description.read()
+        with open(jd_path, "wb") as f:
+            f.write(jd_content)
+            
+        # Verify file sizes
+        if os.path.getsize(resume_path) == 0:
+            raise Exception("Uploaded resume is empty")
+        if os.path.getsize(jd_path) == 0:
+            raise Exception("Uploaded job description is empty")
+
         # Process documents (blocking -> threadpool)
         print("Extracting text...")
         resume_text, jd_text = await run_in_threadpool(process_documents, resume_path, jd_path)

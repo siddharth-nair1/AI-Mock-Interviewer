@@ -4,6 +4,10 @@ import os
 def extract_text_from_pdf(file_path):
     """Extract text from PDF file"""
     try:
+        # Check file size first
+        if os.path.getsize(file_path) == 0:
+            raise Exception(f"File is empty (0 bytes): {file_path}")
+
         doc = fitz.open(file_path)
         text = ""
         for page in doc:
