@@ -28,14 +28,14 @@ def call_llm(prompt, provider="ollama", json_mode=False):
     
     if provider == "gemini":
         try:
-            print("Calling Gemini 2.5 Flash...")
-            # Strictly use gemini-2.5-flash as requested
+            print("Calling Gemma 3 27B IT...")
+            # Strictly use gemma-3-27b-it as requested
             try:
-                model = genai.GenerativeModel('gemini-2.5-flash-lite')
+                model = genai.GenerativeModel('gemma-3-27b-it')
                 response = model.generate_content(prompt)
                 return response.text.strip()
             except Exception as e:
-                print(f"Gemini Flash failed: {e}")
+                print(f"Gemma 3 failed: {e}")
                 print("DEBUG: Listing available models to help fix the name:")
                 for m in genai.list_models():
                     if 'generateContent' in m.supported_generation_methods:
