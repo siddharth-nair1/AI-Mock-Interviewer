@@ -1,21 +1,15 @@
 from faster_whisper import WhisperModel
 import edge_tts
 import os
-import subprocess
 
 print("Loading Whisper model...")
-whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
-print("Whisper model loaded!")
-
-def convert_webm_to_wav(webm_path, wav_path):
-    try:
-        subprocess.run(
-            ['ffmpeg', '-i', webm_path, '-ar', '16000', '-ac', '1', '-y', wav_path],
-            check=True, capture_output=True
-        )
-        return wav_path
-    except:
-        return webm_path
+# Optimized for Speed: CUDA + float16
+try:
+    whisper_model = WhisperModel("base", device="cuda", compute_type="float16")
+    print("Whisper model loaded on GPU (CUDA)!")
+except Exception as e:
+    print(f"Warning: GPU init failed ({e}). Falling back to CPU.")
+    whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
 
 def transcribe_audio(audio_file_path):
     try:
@@ -27,24 +21,21 @@ def transcribe_audio(audio_file_path):
         file_size = os.path.getsize(audio_file_path)
         print(f"File size: {file_size} bytes")
         
-        if file_size < 1000:
+        if file_size < 100:
             raise Exception("Audio file too small")
         
-        if audio_file_path.endswith('.webm'):
-            wav_path = audio_file_path.replace('.webm', '.wav')
-            try:
-                audio_file_path = convert_webm_to_wav(audio_file_path, wav_path)
-            except:
-                pass
-        
+        # faster-whisper handles WebM/MP3/WAV natively via internal ffmpeg libraries
         segments, info = whisper_model.transcribe(
-            audio_file_path, beam_size=5, language='en', vad_filter=True
+            audio_file_path, 
+            beam_size=1,      # Greedy search for speed
+            language='en', 
+            vad_filter=True   # Filters out silence/noise
         )
         
         text = " ".join(segment.text for segment in segments).strip()
         print(f"Transcription: '{text}'")
         
-        if not text or len(text) < 3:
+        if not text:
             raise Exception("No speech detected")
         
         return text
@@ -58,11 +49,15 @@ async def text_to_speech(text, output_path):
         
         # Clean text
         text = ' '.join(text.replace('\n', ' ').replace('\r', ' ').split())
+        
+        # Add slight pauses for punctuation
+        text = text.replace('.', '. ').replace(',', ', ').replace('?', '? ').replace('!', '! ')
+        
         if len(text) > 500:
             text = text[:497] + "..."
         
         # Choose voice
-        voice = "en-US-GuyNeural"  # Change to: AriaNeural, SaraNeural, GuyNeural, etc.
+        voice = "en-US-ChristopherNeural"
         
         # Generate speech
         communicate = edge_tts.Communicate(text, voice)

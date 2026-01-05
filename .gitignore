@@ -1,2 +1,6 @@
 venv
 uploads
+__pycache__/
+*.pyc
+backend\__pycache__/
+**/__pycache__/

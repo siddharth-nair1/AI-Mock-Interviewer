@@ -1,14 +1,17 @@
 import fitz  # PyMuPDF
-import os
+import io
 
-def extract_text_from_pdf(file_path):
-    """Extract text from PDF file"""
+def extract_text_from_pdf_bytes(file_content):
+    """Extract text from PDF bytes"""
     try:
-        doc = fitz.open(file_path)
-        text = ""
-        for page in doc:
-            text += page.get_text()
-        doc.close()
+        if not file_content:
+            raise Exception("File content is empty")
+
+        # Open PDF from memory stream
+        with fitz.open(stream=file_content, filetype="pdf") as doc:
+            text = ""
+            for page in doc:
+                text += page.get_text()
         
         if not text.strip():
             raise Exception("PDF appears to be empty or contains only images")
@@ -16,60 +19,46 @@ def extract_text_from_pdf(file_path):
         return text
     
     except Exception as e:
-        raise Exception(f"Error reading PDF: {str(e)}")
+        raise Exception(f"Error reading PDF from memory: {str(e)}")
 
-def extract_text_from_txt(file_path):
-    """Extract text from TXT file"""
+def extract_text_from_txt_bytes(file_content):
+    """Extract text from TXT bytes"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-        
-        if not text.strip():
-            raise Exception("Text file is empty")
-        
-        return text
-    
-    except UnicodeDecodeError:
-        # Try different encoding
+        if not file_content:
+            raise Exception("File content is empty")
+            
+        # Try UTF-8
         try:
-            with open(file_path, 'r', encoding='latin-1') as f:
-                text = f.read()
-            return text
-        except Exception as e:
-            raise Exception(f"Error reading text file: {str(e)}")
-    
+            return file_content.decode('utf-8')
+        except UnicodeDecodeError:
+            # Try Latin-1 fallback
+            return file_content.decode('latin-1')
+            
     except Exception as e:
-        raise Exception(f"Error reading text file: {str(e)}")
+        raise Exception(f"Error decoding text file: {str(e)}")
 
-def process_documents(resume_path, jd_path):
-    """Process both resume and job description"""
+def process_documents(resume_content: bytes, resume_filename: str, jd_content: bytes, jd_filename: str):
+    """Process both resume and job description from memory"""
     
-    print(f"Processing resume: {resume_path}")
-    print(f"Processing JD: {jd_path}")
-    
-    # Check if files exist
-    if not os.path.exists(resume_path):
-        raise Exception(f"Resume file not found: {resume_path}")
-    
-    if not os.path.exists(jd_path):
-        raise Exception(f"Job description file not found: {jd_path}")
+    print(f"Processing Resume: {resume_filename} ({len(resume_content)} bytes)")
+    print(f"Processing JD: {jd_filename} ({len(jd_content)} bytes)")
     
     resume_text = ""
     jd_text = ""
     
-    # Process resume
-    if resume_path.lower().endswith('.pdf'):
-        resume_text = extract_text_from_pdf(resume_path)
+    # Process Resume
+    if resume_filename.lower().endswith('.pdf'):
+        resume_text = extract_text_from_pdf_bytes(resume_content)
     else:
-        resume_text = extract_text_from_txt(resume_path)
+        resume_text = extract_text_from_txt_bytes(resume_content)
     
-    # Process job description
-    if jd_path.lower().endswith('.pdf'):
-        jd_text = extract_text_from_pdf(jd_path)
+    # Process JD
+    if jd_filename.lower().endswith('.pdf'):
+        jd_text = extract_text_from_pdf_bytes(jd_content)
     else:
-        jd_text = extract_text_from_txt(jd_path)
+        jd_text = extract_text_from_txt_bytes(jd_content)
     
-    print(f"Resume extracted: {len(resume_text)} characters")
-    print(f"JD extracted: {len(jd_text)} characters")
+    print(f"Resume text length: {len(resume_text)}")
+    print(f"JD text length: {len(jd_text)}")
     
     return resume_text, jd_text
