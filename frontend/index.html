@@ -315,7 +315,8 @@
             try {
                 const res = await fetch(`${API_BASE}/upload`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'include'
                 });
                 const data = await res.json();
 
@@ -385,7 +386,8 @@
             try {
                 const res = await fetch(`${API_BASE}/answer`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'include'
                 });
                 const data = await res.json();
                 
