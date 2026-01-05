@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Mock Interviewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-section, .interview-section {
+            margin: 20px 0;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            display: block;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .recording {
+            background-color: #f44336 !important;
+        }
+        #status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        #transcript {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #4CAF50;
+            margin: 15px 0;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 AI Mock Interviewer</h1>
+        
+        <div id="uploadSection" class="upload-section">
+            <h2>Step 1: Upload Documents</h2>
+            <label>Resume (PDF or TXT):</label>
+            <input type="file" id="resume" accept=".pdf,.txt">
+            
+            <label>Job Description (PDF or TXT):</label>
+            <input type="file" id="jobDescription" accept=".pdf,.txt">
+            
+            <button onclick="uploadDocuments()">Analyze & Prepare Interview</button>
+        </div>
+
+        <div id="interviewSection" class="interview-section hidden">
+            <h2>Step 2: Interview</h2>
+            <p><strong>Question <span id="questionNumber">1</span>/<span id="totalQuestions">10</span></strong></p>
+            <div id="currentQuestion" style="font-size: 18px; margin: 15px 0;"></div>
+            
+            <audio id="questionAudio" controls style="width: 100%; margin: 15px 0;"></audio>
+            
+            <button id="recordBtn" onclick="toggleRecording()">🎤 Start Recording Answer</button>
+            <button id="submitBtn" onclick="submitAnswer()" disabled>Submit Answer</button>
+            
+            <div id="transcript"></div>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    function showStatus(message, type) {
+        const status = document.getElementById('status');
+        status.textContent = message;
+        status.className = type;
+        status.style.display = 'block';
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+    async function uploadDocuments() {
+        const resume = document.getElementById('resume').files[0];
+        const jd = document.getElementById('jobDescription').files[0];
+
+        if (!resume || !jd) {
+            showStatus('Please select both resume and job description', 'error');
+            return;
+        }
+
+        showStatus('Analyzing documents and preparing questions... This may take 30-60 seconds.', 'info');
+
+        const formData = new FormData();
+        formData.append('resume', resume);
+        formData.append('job_description', jd);
+
+        try {
+            const response = await fetch(`${API_BASE}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showStatus('✅ Interview prepared! Starting now...', 'success');
+                document.getElementById('uploadSection').classList.add('hidden');
+                document.getElementById('interviewSection').classList.remove('hidden');
+                document.getElementById('totalQuestions').textContent = data.questions.length;
+                startInterview();
+            } else {
+                showStatus('Error: ' + (data.message || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            showStatus('Connection error. Make sure backend is running.', 'error');
+            console.error(error);
+        }
+    }
+
+    async function startInterview() {
+        try {
+            const response = await fetch(`${API_BASE}/start-interview`);
+            const data = await response.json();
+
+            document.getElementById('currentQuestion').textContent = data.question;
+            document.getElementById('questionAudio').src = `${API_BASE}${data.audio_url}?t=${Date.now()}`;
+            document.getElementById('questionNumber').textContent = data.question_number;
+            
+            // Auto-play the question
+            document.getElementById('questionAudio').play();
+        } catch (error) {
+            showStatus('Error starting interview', 'error');
+            console.error(error);
+        }
+    }
+
+    async function toggleRecording() {
+        const btn = document.getElementById('recordBtn');
+        
+        if (!isRecording) {
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    } 
+                });
+                
+                // Use audio/webm format explicitly
+                const options = { mimeType: 'audio/webm' };
+                mediaRecorder = new MediaRecorder(stream, options);
+                
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                    document.getElementById('submitBtn').disabled = false;
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                btn.textContent = '⏹️ Stop Recording';
+                btn.classList.add('recording');
+                showStatus('🎤 Recording... Speak clearly and naturally', 'info');
+            } catch (error) {
+                showStatus('Microphone access denied or not available', 'error');
+                console.error('Microphone error:', error);
+            }
+        } else {
+            // Stop recording
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            btn.textContent = '🎤 Start Recording Answer';
+            btn.classList.remove('recording');
+            showStatus('Recording stopped. Click Submit Answer to process.', 'success');
+        }
+    }
+
+    async function submitAnswer() {
+        if (audioChunks.length === 0) {
+            showStatus('No audio recorded. Please record your answer first.', 'error');
+            return;
+        }
+
+        // Create blob from chunks
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        // Check if blob has content
+        if (audioBlob.size === 0) {
+            showStatus('Recording is empty. Please try recording again.', 'error');
+            return;
+        }
+        
+        console.log('Audio blob size:', audioBlob.size, 'bytes');
+
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'answer.webm'); // Changed to .webm
+
+        showStatus('Processing your answer... (transcribing speech)', 'info');
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('recordBtn').disabled = true;
+
+        try {
+            const response = await fetch(`${API_BASE}/answer`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                showStatus('Error: ' + data.error, 'error');
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('recordBtn').disabled = false;
+                return;
+            }
+
+            // Show transcription
+            document.getElementById('transcript').textContent = 
+                `Your answer: "${data.transcription}"\n\n` +
+                `Interviewer: ${data.interviewer_response}`;
+
+            // Reset for next question
+            audioChunks = [];
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('recordBtn').disabled = false;
+
+            if (data.is_complete) {
+                showStatus('✅ Interview Complete! Great job!', 'success');
+                document.getElementById('recordBtn').disabled = true;
+                document.getElementById('submitBtn').disabled = true;
+            } else {
+                // Load next question
+                document.getElementById('currentQuestion').textContent = data.interviewer_response;
+                document.getElementById('questionAudio').src = `${API_BASE}${data.audio_url}?t=${Date.now()}`;
+                document.getElementById('questionNumber').textContent = data.question_number;
+                document.getElementById('questionAudio').play();
+                showStatus('Ready for next question', 'success');
+            }
+        } catch (error) {
+            showStatus('Error processing answer: ' + error.message, 'error');
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('recordBtn').disabled = false;
+            console.error(error);
+        }
+    }
+</script>
+</body>
+</html>
