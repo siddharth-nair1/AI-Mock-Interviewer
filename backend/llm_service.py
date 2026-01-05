@@ -1,18 +1,34 @@
 import requests
 import json
+from duckduckgo_search import DDGS
 
 OLLAMA_API = "http://localhost:11434/api/generate"
+
+def get_internet_context(query):
+    """Fetch search results for the given query using DuckDuckGo"""
+    try:
+        print(f"Searching internet for: {query}")
+        results = DDGS().text(query, max_results=3)
+        if not results:
+            return "No recent internet data found."
+        
+        formatted_results = "\n".join([f"- {r['title']}: {r['body']}" for r in results])
+        return formatted_results
+    except Exception as e:
+        print(f"Internet search failed: {e}")
+        return "Internet search unavailable."
 
 def call_llm(prompt, context=""):
     """Send prompt to local Ollama LLM"""
     
     try:
         payload = {
-            "model": "llama3.2:3b",
+            "model": "phi3.5",
             "prompt": prompt,
             "stream": False,
             "options": {
-                "temperature": 0.3
+                "temperature": 0.3,
+                "num_ctx": 4096
             }
         }
         
@@ -63,6 +79,15 @@ def generate_initial_question(resume_text, jd_text):
     if len(jd_text) > max_jd_length:
         jd_text = jd_text[:max_jd_length] + "..."
     
+    # Extract role title (simple heuristic: first line or first few words)
+    role_title = jd_text[:100].split('\n')[0].strip()
+    if len(role_title) > 50:
+        role_title = role_title[:50]
+        
+    # Get internet context
+    search_query = f"Senior technical interview questions for {role_title}"
+    internet_data = get_internet_context(search_query)
+    
     prompt = f"""You are a Senior Technical Interviewer.
     
 Analyze the following resume and job description.
@@ -74,12 +99,16 @@ RESUME:
 JOB DESCRIPTION:
 {jd_text}
 
+RECENT INTERNET DATA (Trending Questions):
+{internet_data}
+
 Output ONLY the opening greeting and the first question.
 Instructions:
 1. Identify one HARD SKILL from the JD that matches a project or experience in the Resume.
-2. Ask a specific technical implementation question about that project/skill.
-3. Do not ask generic questions like "Tell me about yourself".
-4. Keep it under 50 words.
+2. You may use the 'RECENT INTERNET DATA' to inspire a relevant, modern technical question.
+3. Ask a specific technical implementation question about that project/skill.
+4. Do not ask generic questions like "Tell me about yourself".
+5. Keep it under 50 words.
 
 Example format: "Hello. I see you used [Skill] in [Project]. How specifically did you handle [Technical Challenge] in that implementation?"
 """

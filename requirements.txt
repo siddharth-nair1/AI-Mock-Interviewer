@@ -9,3 +9,4 @@ python-dotenv
 piper-tts
 gtts
 edge-tts
+duckduckgo-search
