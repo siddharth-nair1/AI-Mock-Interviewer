@@ -202,6 +202,26 @@ async def process_answer(request: Request, audio: UploadFile = File(...)):
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
 
+@app.get("/transcript")
+async def get_transcript(request: Request):
+    """Download the interview transcript"""
+    session_id = request.state.session_id
+    session = get_session(session_id)
+    
+    if not session["history"]:
+        return Response(content="No transcript available.", media_type="text/plain")
+        
+    # Format the transcript with timestamps or better separation if needed
+    formatted_transcript = f"Interview Transcript - Session {session_id}\n"
+    formatted_transcript += "=" * 50 + "\n\n"
+    formatted_transcript += session["history"]
+    
+    return Response(
+        content=formatted_transcript, 
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename=transcript_{session_id}.txt"}
+    )
+
 # Serve audio files
 app.mount("/audio", StaticFiles(directory="uploads"), name="audio")
 
