@@ -13,10 +13,14 @@ from voice_service import transcribe_audio, text_to_speech
 
 app = FastAPI()
 
-# Enable CORS (Still good to have, but less critical if served from same origin)
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "null"  # For file:// access in some browsers
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
