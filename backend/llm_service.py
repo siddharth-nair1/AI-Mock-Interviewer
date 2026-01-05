@@ -28,7 +28,8 @@ def call_llm(prompt, context=""):
             "stream": False,
             "options": {
                 "temperature": 0.3,
-                "num_ctx": 4096
+                "num_ctx": 4096,
+                "stop": ["Candidate:", "User:", "Interviewee:", "\n\n\n"]
             }
         }
         
@@ -151,5 +152,15 @@ Constraint: Maximum 3 sentences. Be direct and professional.
 
     print("Generating dynamic interviewer response...")
     response = call_llm(prompt)
+    
+    # Post-processing safety: Cut off if model generates Candidate's part
+    if "Candidate:" in response:
+        response = response.split("Candidate:")[0].strip()
+    if "User:" in response:
+        response = response.split("User:")[0].strip()
+    
+    # Clean up quotes
+    response = response.replace('"', '').replace("Interviewer:", "").strip()
+    
     print("Response generated!")
     return response
