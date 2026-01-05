@@ -114,13 +114,6 @@ async def upload_documents(
 
         # 4. Generate initial question (blocking -> threadpool)
         print("Generating initial question...")
-        resume_text, jd_text = await run_in_threadpool(process_documents, resume_path, jd_path)
-        
-        session["resume_text"] = resume_text
-        session["jd_text"] = jd_text
-        
-        # Generate initial question (blocking -> threadpool)
-        print("Generating initial question...")
         initial_question = await run_in_threadpool(generate_initial_question, resume_text, jd_text)
         
         session["history"] = f"Interviewer: {initial_question}\n"
