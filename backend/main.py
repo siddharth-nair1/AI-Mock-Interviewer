@@ -26,8 +26,9 @@ app.add_middleware(
 # Structure: { session_id: { "history": "", "resume_text": "", "jd_text": "", "question_count": 0 } }
 sessions: Dict[str, dict] = {}
 
-# Create uploads directory
-os.makedirs("uploads", exist_ok=True)
+# Create uploads directory (Absolute path to avoid CWD issues)
+UPLOAD_DIR = os.path.abspath("uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.get("/")
 async def root():
@@ -74,25 +75,41 @@ async def upload_documents(
     try:
         print(f"\n{'='*50}")
         print(f"NEW UPLOAD REQUEST (Session: {session_id})")
+        print(f"Upload Directory: {UPLOAD_DIR}")
         
         # Save files with session_id to avoid conflicts
-        resume_path = f"uploads/{session_id}_resume.pdf"
-        jd_path = f"uploads/{session_id}_jd.pdf"
+        resume_filename = f"{session_id}_resume.pdf"
+        jd_filename = f"{session_id}_jd.pdf"
+        
+        resume_path = os.path.join(UPLOAD_DIR, resume_filename)
+        jd_path = os.path.join(UPLOAD_DIR, jd_filename)
         
         # Save Resume
+        print(f"Saving resume to: {resume_path}")
         resume_content = await resume.read()
         with open(resume_path, "wb") as f:
             f.write(resume_content)
+            f.flush()
+            os.fsync(f.fileno()) # Force write to disk
             
         # Save JD
+        print(f"Saving JD to: {jd_path}")
         jd_content = await job_description.read()
         with open(jd_path, "wb") as f:
             f.write(jd_content)
+            f.flush()
+            os.fsync(f.fileno()) # Force write to disk
             
         # Verify file sizes
-        if os.path.getsize(resume_path) == 0:
+        resume_size = os.path.getsize(resume_path)
+        jd_size = os.path.getsize(jd_path)
+        
+        print(f"Resume size: {resume_size} bytes")
+        print(f"JD size: {jd_size} bytes")
+
+        if resume_size == 0:
             raise Exception("Uploaded resume is empty")
-        if os.path.getsize(jd_path) == 0:
+        if jd_size == 0:
             raise Exception("Uploaded job description is empty")
 
         # Process documents (blocking -> threadpool)
