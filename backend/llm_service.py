@@ -28,17 +28,20 @@ def call_llm(prompt, provider="ollama", json_mode=False):
     
     if provider == "gemini":
         try:
-            print("Calling Gemini 1.5 Flash...")
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
-            
-            generation_config = {}
-            if json_mode:
-                generation_config["response_mime_type"] = "application/json"
-            
-            response = model.generate_content(prompt, generation_config=generation_config)
-            text = response.text.strip()
-            print(f"Gemini response length: {len(text)}")
-            return text
+            print("Calling Gemini 2.5 Flash...")
+            # Strictly use gemini-2.5-flash as requested
+            try:
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                response = model.generate_content(prompt)
+                return response.text.strip()
+            except Exception as e:
+                print(f"Gemini Flash failed: {e}")
+                print("DEBUG: Listing available models to help fix the name:")
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                        print(f" - {m.name}")
+                raise e
+
         except Exception as e:
             print(f"Gemini Error: {e}")
             raise Exception(f"Gemini API Error: {str(e)}")
