@@ -55,6 +55,7 @@
             justify-content: center;
             background: var(--surface);
             border-right: 1px solid var(--border);
+            overflow-y: auto;
         }
 
         .landing-right {
@@ -69,24 +70,56 @@
         h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
         p.subtitle { color: var(--text-sub); margin-bottom: 2rem; font-size: 1.1rem; }
 
-        .upload-zone {
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.2s;
-            cursor: pointer;
+        .input-group {
             margin-bottom: 1.5rem;
             background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: var(--primary);
-            background: #eef2ff;
+        .upload-zone {
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        .upload-zone:hover { background: #eef2ff; }
 
         .upload-icon { font-size: 2rem; color: var(--text-sub); margin-bottom: 10px; }
         .file-name { margin-top: 10px; font-weight: 500; color: var(--primary); font-size: 0.9rem; }
+
+        /* Tabs for JD */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #eee;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-sub);
+        }
+        .tab.active {
+            background: white;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        textarea.jd-text {
+            width: 100%;
+            height: 150px;
+            padding: 1rem;
+            border: none;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+        }
 
         .start-btn {
             background: var(--primary);
@@ -125,6 +158,7 @@
             background: #f8fafc;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         .video-card {
@@ -198,10 +232,13 @@
         .sidebar-header {
             padding: 1.5rem;
             border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .sidebar-header h2 { font-size: 1.2rem; font-weight: 600; }
-        .sidebar-status { font-size: 0.9rem; color: var(--success); margin-top: 5px; font-weight: 500; }
+        .sidebar-status { font-size: 0.9rem; color: var(--success); font-weight: 500; }
 
         .chat-area {
             flex: 1;
@@ -237,32 +274,46 @@
 
         /* Controls */
         .controls-area {
-            padding: 1.5rem;
+            padding: 1rem;
             border-top: 1px solid var(--border);
             background: white;
-            text-align: center;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
         }
 
-        .mic-btn {
-            width: 70px;
-            height: 70px;
+        .control-btn {
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             border: none;
-            background: var(--primary);
-            color: white;
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto;
+            background: #f3f4f6;
+            color: var(--text-main);
         }
+        
+        .control-btn:hover { background: #e5e7eb; }
 
-        .mic-btn:hover { transform: scale(1.05); }
-        .mic-btn.active { background: var(--danger); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
-        .mic-hint { margin-top: 10px; color: var(--text-sub); font-size: 0.85rem; }
+        .control-btn.mic-main {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            color: white;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+        }
+        .control-btn.mic-main:hover { transform: scale(1.05); }
+        .control-btn.mic-main.active { background: var(--danger); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
+
+        .control-btn.danger { color: var(--danger); background: #fee2e2; }
+        .control-btn.danger:hover { background: #fecaca; }
+
+        .control-btn.video-off { background: #fee2e2; color: var(--text-main); text-decoration: line-through; }
 
         /* Loader */
         .loader {
@@ -287,20 +338,37 @@
             <h1>Setup Interview</h1>
             <p class="subtitle">Upload your documents to generate a personalized AI interview session.</p>
             
-            <div class="upload-zone" onclick="document.getElementById('resume').click()">
-                <div class="upload-icon">📄</div>
-                <div><strong>Upload Resume</strong></div>
-                <div class="text-sm text-gray-500">PDF or TXT</div>
-                <div id="resume-name" class="file-name"></div>
-                <input type="file" id="resume" accept=".pdf,.txt" hidden onchange="updateFileName('resume')">
+            <!-- Resume Section -->
+            <div class="input-group">
+                <div class="upload-zone" onclick="document.getElementById('resume').click()">
+                    <div class="upload-icon">📄</div>
+                    <div><strong>Upload Resume</strong></div>
+                    <div class="text-sm text-gray-500">PDF or TXT</div>
+                    <div id="resume-name" class="file-name"></div>
+                    <input type="file" id="resume" accept=".pdf,.txt" hidden onchange="updateFileName('resume')">
+                </div>
             </div>
 
-            <div class="upload-zone" onclick="document.getElementById('jd').click()">
-                <div class="upload-icon">💼</div>
-                <div><strong>Upload Job Description</strong></div>
-                <div class="text-sm text-gray-500">PDF or TXT</div>
-                <div id="jd-name" class="file-name"></div>
-                <input type="file" id="jd" accept=".pdf,.txt" hidden onchange="updateFileName('jd')">
+            <!-- Job Description Section -->
+            <div class="input-group">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('upload')">Upload File</div>
+                    <div class="tab" onclick="switchTab('paste')">Paste Text</div>
+                </div>
+                
+                <!-- Tab: Upload -->
+                <div id="jd-upload-tab" class="upload-zone" onclick="document.getElementById('jd').click()">
+                    <div class="upload-icon">💼</div>
+                    <div><strong>Upload Job Description</strong></div>
+                    <div class="text-sm text-gray-500">PDF or TXT</div>
+                    <div id="jd-name" class="file-name"></div>
+                    <input type="file" id="jd" accept=".pdf,.txt" hidden onchange="updateFileName('jd')">
+                </div>
+
+                <!-- Tab: Paste -->
+                <div id="jd-paste-tab" class="hidden">
+                    <textarea id="jd-text" class="jd-text" placeholder="Paste the Job Description text here..."></textarea>
+                </div>
             </div>
 
             <div id="error-msg" style="color:var(--danger); margin-bottom:1rem; display:none;"></div>
@@ -335,8 +403,10 @@
         <!-- Right Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>Transcript</h2>
-                <div class="sidebar-status" id="statusText">Connecting...</div>
+                <div>
+                    <h2>Transcript</h2>
+                    <div class="sidebar-status" id="statusText">Connecting...</div>
+                </div>
             </div>
 
             <div class="chat-area" id="chat">
@@ -346,10 +416,17 @@
             </div>
 
             <div class="controls-area">
-                <button class="mic-btn" id="micBtn" onclick="toggleRecording()">
+                <button class="control-btn" onclick="toggleVideo()" title="Toggle Video">
+                    📷
+                </button>
+                
+                <button class="control-btn mic-main" id="micBtn" onclick="toggleRecording()" title="Speak">
                     🎙️
                 </button>
-                <p class="mic-hint" id="micHint">Tap to Speak</p>
+                
+                <button class="control-btn danger" onclick="endInterview()" title="End Interview">
+                    📞
+                </button>
             </div>
         </div>
     </div>
@@ -361,6 +438,7 @@
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
+        let jdMode = 'upload'; // 'upload' or 'paste'
 
         function updateFileName(type) {
             const input = document.getElementById(type);
@@ -370,7 +448,26 @@
             }
         }
 
-        // Initialize Camera early
+        function switchTab(mode) {
+            jdMode = mode;
+            const uploadTab = document.getElementById('jd-upload-tab');
+            const pasteTab = document.getElementById('jd-paste-tab');
+            const tabs = document.querySelectorAll('.tab');
+
+            if (mode === 'upload') {
+                uploadTab.classList.remove('hidden');
+                pasteTab.classList.add('hidden');
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                uploadTab.classList.add('hidden');
+                pasteTab.classList.remove('hidden');
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
+        // Initialize Camera
         async function initCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -381,14 +478,41 @@
         }
         initCamera();
 
+        function toggleVideo() {
+            const video = document.getElementById('userVideo');
+            if (video.srcObject) {
+                const track = video.srcObject.getVideoTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    event.target.classList.toggle('video-off');
+                }
+            }
+        }
+
+        function endInterview() {
+            if (confirm("Are you sure you want to end the interview?")) {
+                location.reload();
+            }
+        }
+
         async function startSetup() {
             const resume = document.getElementById('resume').files[0];
-            const jd = document.getElementById('jd').files[0];
             const btn = document.getElementById('startBtn');
             const err = document.getElementById('error-msg');
+            
+            // Handle JD logic
+            let jdFile = null;
+            if (jdMode === 'upload') {
+                jdFile = document.getElementById('jd').files[0];
+            } else {
+                const text = document.getElementById('jd-text').value;
+                if (text.trim().length > 0) {
+                    jdFile = new File([text], "job_description.txt", { type: "text/plain" });
+                }
+            }
 
-            if (!resume || !jd) {
-                err.innerText = "Please select both files.";
+            if (!resume || !jdFile) {
+                err.innerText = "Please provide both Resume and Job Description.";
                 err.style.display = "block";
                 return;
             }
@@ -399,7 +523,7 @@
 
             const formData = new FormData();
             formData.append('resume', resume);
-            formData.append('job_description', jd);
+            formData.append('job_description', jdFile);
 
             try {
                 const res = await fetch(`${API_BASE}/upload`, {
@@ -447,7 +571,6 @@
 
         async function toggleRecording() {
             const btn = document.getElementById('micBtn');
-            const hint = document.getElementById('micHint');
 
             if (!isRecording) {
                 // START
@@ -463,7 +586,6 @@
                     isRecording = true;
                     btn.classList.add('active');
                     btn.innerText = "⏹️";
-                    hint.innerText = "Listening... Tap to Stop";
                     updateStatus("Listening...");
                 } catch (e) {
                     alert("Microphone error");
@@ -474,7 +596,6 @@
                 isRecording = false;
                 btn.classList.remove('active');
                 btn.innerText = "🎙️";
-                hint.innerText = "Sending...";
                 updateStatus("Thinking...");
             }
         }
@@ -485,9 +606,6 @@
 
             const formData = new FormData();
             formData.append('audio', blob, 'answer.webm');
-
-            // Optimistic UI
-            // addMessage("... (Audio Sent)", 'user');
 
             try {
                 const res = await fetch(`${API_BASE}/answer`, {
