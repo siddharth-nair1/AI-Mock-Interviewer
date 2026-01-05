@@ -75,45 +75,45 @@ async def upload_documents(
     try:
         print(f"\n{'='*50}")
         print(f"NEW UPLOAD REQUEST (Session: {session_id})")
-        print(f"Upload Directory: {UPLOAD_DIR}")
         
-        # Save files with session_id to avoid conflicts
+        # 1. Read files into memory (Async)
+        print("Reading files into memory...")
+        resume_content = await resume.read()
+        jd_content = await job_description.read()
+        
+        if len(resume_content) == 0:
+            raise Exception("Uploaded resume is empty")
+        if len(jd_content) == 0:
+            raise Exception("Uploaded job description is empty")
+
+        # 2. Process documents (From Memory - CPU Bound -> Threadpool)
+        print("Extracting text from memory...")
+        resume_text, jd_text = await run_in_threadpool(
+            process_documents, 
+            resume_content, 
+            resume.filename, 
+            jd_content, 
+            job_description.filename
+        )
+        
+        session["resume_text"] = resume_text
+        session["jd_text"] = jd_text
+        
+        # 3. Save files to disk (for record keeping only)
+        # We do this AFTER processing is initiated so it doesn't block or error the user response
         resume_filename = f"{session_id}_resume.pdf"
         jd_filename = f"{session_id}_jd.pdf"
-        
         resume_path = os.path.join(UPLOAD_DIR, resume_filename)
         jd_path = os.path.join(UPLOAD_DIR, jd_filename)
         
-        # Save Resume
-        print(f"Saving resume to: {resume_path}")
-        resume_content = await resume.read()
+        print(f"Saving backup copies to: {UPLOAD_DIR}")
         with open(resume_path, "wb") as f:
             f.write(resume_content)
-            f.flush()
-            os.fsync(f.fileno()) # Force write to disk
-            
-        # Save JD
-        print(f"Saving JD to: {jd_path}")
-        jd_content = await job_description.read()
         with open(jd_path, "wb") as f:
             f.write(jd_content)
-            f.flush()
-            os.fsync(f.fileno()) # Force write to disk
-            
-        # Verify file sizes
-        resume_size = os.path.getsize(resume_path)
-        jd_size = os.path.getsize(jd_path)
-        
-        print(f"Resume size: {resume_size} bytes")
-        print(f"JD size: {jd_size} bytes")
 
-        if resume_size == 0:
-            raise Exception("Uploaded resume is empty")
-        if jd_size == 0:
-            raise Exception("Uploaded job description is empty")
-
-        # Process documents (blocking -> threadpool)
-        print("Extracting text...")
+        # 4. Generate initial question (blocking -> threadpool)
+        print("Generating initial question...")
         resume_text, jd_text = await run_in_threadpool(process_documents, resume_path, jd_path)
         
         session["resume_text"] = resume_text
