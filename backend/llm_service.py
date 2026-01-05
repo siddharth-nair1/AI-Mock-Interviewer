@@ -1,6 +1,6 @@
 import requests
 import json
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 OLLAMA_API = "http://localhost:11434/api/generate"
 
