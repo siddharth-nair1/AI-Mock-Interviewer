@@ -46,8 +46,11 @@ async def health():
 async def session_middleware(request: Request, call_next):
     """Middleware to handle session IDs"""
     session_id = request.cookies.get("session_id")
+    print(f"[{request.method} {request.url.path}] Cookie Session ID: {session_id}")
+    
     if not session_id:
         session_id = str(uuid.uuid4())
+        print(f"Generated NEW Session ID: {session_id}")
         request.state.session_id = session_id
         response = await call_next(request)
         response.set_cookie(key="session_id", value=session_id)

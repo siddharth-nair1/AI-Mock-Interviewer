@@ -60,7 +60,7 @@ def generate_initial_question(resume_text, jd_text):
     if len(jd_text) > max_jd_length:
         jd_text = jd_text[:max_jd_length] + "..."
     
-    prompt = f"""You are a Senior Technical Interviewer. Be professional but critical.
+    prompt = f"""You are a Senior Technical Interviewer.
     
 Analyze the following resume and job description.
 Your task is to start the interview.
@@ -72,9 +72,9 @@ JOB DESCRIPTION:
 {jd_text}
 
 Output ONLY the opening greeting and the first question.
-Example: "Hello, I've reviewed your resume. Let's start. Tell me about your experience with..."
-
-Do not generate a list. Just the single opening interaction."""
+Keep it short (under 30 words).
+Example: "Hi, I've reviewed your profile. Let's discuss your experience with Python. Can you elaborate?"
+"""
 
     print("Generating initial question...")
     response = call_llm(prompt)
@@ -100,13 +100,13 @@ CANDIDATE'S LAST ANSWER:
 "{candidate_answer}"
 
 YOUR TASK:
-1. Analyze the candidate's answer.
-2. If the answer is vague or buzzword-heavy, ask a specific follow-up technical question to test depth.
-3. If the answer is good, acknowledge it briefly and move to a new relevant topic based on the Resume/JD.
-4. If the candidate claims a skill, ask a specific technical question about it.
+1. Analyze the answer.
+2. Ask the next logical question (technical or behavioral).
+3. Be CRITICAL. If they missed something, probe it.
 
-Output ONLY your next response (spoken text). Do not include "Interviewer:" prefix.
-Keep it under 3 sentences. Be professional but critical.
+Output ONLY the spoken response.
+CRITICAL CONSTRAINT: MAX 2 SENTENCES. MAX 40 WORDS.
+Do not say "Good answer" or "Okay". Just ask the question.
 """
 
     print("Generating dynamic interviewer response...")
