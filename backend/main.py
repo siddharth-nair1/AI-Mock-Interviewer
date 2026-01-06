@@ -52,21 +52,33 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def get_random_common_question(jd_text: str):
     """Select a random question based on JD keywords."""
     jd_lower = jd_text.lower()
-    categories = ["general", "devops_core"] # Always include general and core DevOps
     
-    # Check for specific sub-domains
-    if any(k in jd_lower for k in ["kubernetes", "docker", "container", "orchestration", "k8s"]):
-        categories.append("containers_and_orchestration")
-        
-    if any(k in jd_lower for k in ["terraform", "ansible", "cloud", "aws", "azure", "gcp", "infrastructure"]):
-        categories.append("iac_and_cloud")
-        
-    if any(k in jd_lower for k in ["sre", "reliability", "monitor", "observability", "metrics", "alert"]):
-        categories.append("sre_and_monitoring")
+    # Base categories that are always relevant
+    categories = ["general", "linux_and_scripting", "devsecops_and_compliance"]
     
-    # If no specific keywords found, add all to ensure variety for a general DevOps role
-    if len(categories) == 2:
-        categories.extend(["containers_and_orchestration", "iac_and_cloud", "sre_and_monitoring"])
+    # CI/CD & Automation
+    if any(k in jd_lower for k in ["ci/cd", "pipeline", "jenkins", "github actions", "gitlab", "automation"]):
+        categories.append("ci_cd_and_automation")
+        
+    # Cloud (AWS/Azure)
+    if any(k in jd_lower for k in ["aws", "azure", "cloud", "ec2", "s3", "eks", "lambda"]):
+        categories.append("aws_and_cloud")
+        
+    # IaC & Terraform
+    if any(k in jd_lower for k in ["terraform", "infrastructure as code", "iac", "ansible", "cloudformation"]):
+        categories.append("terraform_and_iac")
+        
+    # Containers & K8s
+    if any(k in jd_lower for k in ["kubernetes", "docker", "k8s", "container", "orchestration", "pod"]):
+        categories.append("docker_and_kubernetes")
+        
+    # Monitoring
+    if any(k in jd_lower for k in ["monitoring", "observability", "prometheus", "grafana", "splunk", "datadog", "elk"]):
+        categories.append("monitoring_and_observability")
+    
+    # Fallback: If no specific keywords found, include high-impact technical categories
+    if len(categories) == 3: # Only base categories were added
+        categories.extend(["docker_and_kubernetes", "aws_and_cloud", "ci_cd_and_automation"])
         
     # Flatten list of available questions
     pool = []
