@@ -1,0 +1,37 @@
+{
+  "general": [
+    "Tell me about a time you caused a production outage and how you handled it.",
+    "How do you approach learning a new tool or technology in the fast-paced DevOps landscape?",
+    "Describe a complex infrastructure challenge you solved recently.",
+    "How do you handle disagreements with developers regarding deployment processes?",
+    "What is your philosophy on 'Infrastructure as Code'?"
+  ],
+  "devops_core": [
+    "Explain the difference between Continuous Integration, Continuous Delivery, and Continuous Deployment.",
+    "How would you design a zero-downtime deployment pipeline?",
+    "What strategies do you use to speed up a slow CI/CD build?",
+    "Explain the concept of 'Shift Left' in the context of DevOps.",
+    "How do you manage secrets and configuration across different environments?"
+  ],
+  "containers_and_orchestration": [
+    "What is the difference between a Docker container and a Virtual Machine?",
+    "Explain the role of the Kubelet in Kubernetes.",
+    "How do you troubleshoot a distinct 'CrashLoopBackOff' error in Kubernetes?",
+    "What are DaemonSets used for in Kubernetes?",
+    "Explain the difference between a StatefulSet and a Deployment."
+  ],
+  "iac_and_cloud": [
+    "How does Terraform manage state and why is it important?",
+    "What is the difference between mutable and immutable infrastructure?",
+    "Compare Terraform with Ansible. When would you use one over the other?",
+    "How do you handle drift in your infrastructure configuration?",
+    "Explain the concept of a VPC and how you would secure public vs private subnets."
+  ],
+  "sre_and_monitoring": [
+    "What is the difference between SLI, SLO, and SLA?",
+    "Describe the 'Four Golden Signals' of monitoring.",
+    "How do you investigate a spike in 500 errors on a web server?",
+    "What is an Error Budget and how do you use it?",
+    "Explain the Linux boot process briefly."
+  ]
+}

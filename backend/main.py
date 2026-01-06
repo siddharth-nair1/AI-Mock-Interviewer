@@ -1,3 +1,6 @@
+import json
+import random
+import time
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -30,12 +33,51 @@ app.add_middleware(
 )
 
 # Session Storage (In-memory for now, could be Redis)
-# Structure: { session_id: { "history": "", "resume_text": "", "jd_text": "", "question_count": 0 } }
+# Structure: { session_id: { "history": "", "resume_text": "", "jd_text": "", "question_count": 0, "start_time": 0.0, "time_limit": 15, "difficulty": "medium" } }
 sessions: Dict[str, dict] = {}
+
+# Load Common Questions
+COMMON_QUESTIONS = {}
+try:
+    with open("backend/common_questions.json", "r") as f:
+        COMMON_QUESTIONS = json.load(f)
+    print("Loaded Common Questions Bank.")
+except Exception as e:
+    print(f"Warning: Could not load common_questions.json: {e}")
 
 # Create uploads directory (Absolute path to avoid CWD issues)
 UPLOAD_DIR = os.path.abspath("uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def get_random_common_question(jd_text: str):
+    """Select a random question based on JD keywords."""
+    jd_lower = jd_text.lower()
+    categories = ["general", "devops_core"] # Always include general and core DevOps
+    
+    # Check for specific sub-domains
+    if any(k in jd_lower for k in ["kubernetes", "docker", "container", "orchestration", "k8s"]):
+        categories.append("containers_and_orchestration")
+        
+    if any(k in jd_lower for k in ["terraform", "ansible", "cloud", "aws", "azure", "gcp", "infrastructure"]):
+        categories.append("iac_and_cloud")
+        
+    if any(k in jd_lower for k in ["sre", "reliability", "monitor", "observability", "metrics", "alert"]):
+        categories.append("sre_and_monitoring")
+    
+    # If no specific keywords found, add all to ensure variety for a general DevOps role
+    if len(categories) == 2:
+        categories.extend(["containers_and_orchestration", "iac_and_cloud", "sre_and_monitoring"])
+        
+    # Flatten list of available questions
+    pool = []
+    for cat in categories:
+        if cat in COMMON_QUESTIONS:
+            pool.extend(COMMON_QUESTIONS[cat])
+            
+    if not pool:
+        return None
+        
+    return random.choice(pool)
 
 @app.get("/")
 async def root():
@@ -68,7 +110,10 @@ def get_session(session_id: str):
             "history": "",
             "resume_text": "",
             "jd_text": "",
-            "question_count": 0
+            "question_count": 0,
+            "start_time": time.time(),
+            "time_limit": 15, # Default 15 mins
+            "difficulty": "medium"
         }
     return sessions[session_id]
 
@@ -77,7 +122,9 @@ async def upload_documents(
     request: Request,
     resume: UploadFile = File(...),
     job_description: UploadFile = File(...),
-    provider: str = Form("ollama")  # Explicitly read from Form data
+    provider: str = Form("ollama"),
+    difficulty: str = Form("medium"),
+    time_limit: int = Form(15)
 ):
     """Handle resume and JD upload, then generate first question"""
     session_id = request.state.session_id
@@ -86,7 +133,7 @@ async def upload_documents(
     try:
         print(f"\n{'='*50}")
         print(f"NEW UPLOAD REQUEST (Session: {session_id})")
-        print(f"Provider: {provider}")
+        print(f"Provider: {provider}, Diff: {difficulty}, Time: {time_limit}m")
         
         # 1. Read files into memory (Async)
         print("Reading files into memory...")
@@ -111,6 +158,9 @@ async def upload_documents(
         session["resume_text"] = resume_text
         session["jd_text"] = jd_text
         session["provider"] = provider
+        session["difficulty"] = difficulty
+        session["time_limit"] = time_limit
+        session["start_time"] = time.time()
         
         # 3. Save files to disk (for record keeping only)
         # We do this AFTER processing is initiated so it doesn't block or error the user response
@@ -127,7 +177,7 @@ async def upload_documents(
 
         # 4. Generate initial question (blocking -> threadpool)
         print("Generating initial question...")
-        initial_question = await run_in_threadpool(generate_initial_question, resume_text, jd_text, provider)
+        initial_question = await run_in_threadpool(generate_initial_question, resume_text, jd_text, provider, difficulty)
         
         session["history"] = f"Interviewer: {initial_question}\n"
         session["question_count"] = 1
@@ -160,6 +210,28 @@ async def process_answer(request: Request, audio: UploadFile = File(...)):
     
     try:
         print(f"\nProcessing Answer for Session: {session_id}")
+
+        # Check Time Limit
+        elapsed_mins = (time.time() - session["start_time"]) / 60
+        print(f"Elapsed: {elapsed_mins:.1f} / {session['time_limit']} mins")
+        
+        if elapsed_mins > session["time_limit"]:
+            final_message = "We are out of time. Thank you for chatting with me today. You can download the transcript of our conversation now."
+            print("Time Limit Reached. Ending Session.")
+            
+            # Generate audio for closing
+            audio_filename = f"{session_id}_end.wav"
+            audio_path = f"uploads/{audio_filename}"
+            await text_to_speech(final_message, audio_path)
+            
+            return JSONResponse({
+                "transcription": "(Session Ended by Time Limit)",
+                "interviewer_response": final_message,
+                "audio_url": f"/audio/{audio_filename}",
+                "question_number": session["question_count"],
+                "ended": True
+            })
+
         
         # Save answer audio
         audio_filename = f"{session_id}_ans_{session['question_count']}.wav"
@@ -177,13 +249,23 @@ async def process_answer(request: Request, audio: UploadFile = File(...)):
         # Pass resume context for better questions
         context = session["resume_text"] + "\n\n" + session["jd_text"]
         provider = session.get("provider", "ollama")
+        difficulty = session.get("difficulty", "medium")
+        
+        # Check for Common Question Injection (20% chance)
+        injected_question = None
+        if random.random() < 0.2:
+            injected_question = get_random_common_question(session["jd_text"])
+            if injected_question:
+                print(f"Injecting Common Question: {injected_question}")
         
         interviewer_response = await run_in_threadpool(
             generate_interviewer_response, 
             session["history"], 
             candidate_answer,
             context,
-            provider
+            provider,
+            difficulty,
+            injected_question
         )
         
         session["history"] += f"Interviewer: {interviewer_response}\n"

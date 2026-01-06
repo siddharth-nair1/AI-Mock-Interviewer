@@ -439,6 +439,29 @@
                 </div>
             </div>
 
+            <!-- Difficulty & Time Limit Selection -->
+            <div style="display:flex; gap:1rem; margin-bottom: 1.5rem;">
+                <!-- Difficulty -->
+                <div class="input-group" style="flex:1; padding: 1rem; margin-bottom: 0;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-main);">Level</label>
+                    <select id="difficulty" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:white;">
+                        <option value="low">Low (Friendly)</option>
+                        <option value="medium" selected>Medium (Standard)</option>
+                        <option value="high">High (Skeptical)</option>
+                    </select>
+                </div>
+
+                <!-- Time Limit -->
+                <div class="input-group" style="flex:1; padding: 1rem; margin-bottom: 0;">
+                    <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-main);">Time Limit</label>
+                    <select id="time_limit" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; background:white;">
+                        <option value="10">10 Minutes</option>
+                        <option value="15" selected>15 Minutes</option>
+                        <option value="30">30 Minutes</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- AI Model Selection -->
             <div class="input-group" style="padding: 1rem;">
                 <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-main);">🤖 Interviewer Intelligence</label>
@@ -655,6 +678,12 @@
             // Add Provider
             const provider = document.querySelector('input[name="ai-mode"]:checked').value;
             formData.append('provider', provider);
+
+            // Add Difficulty and Time Limit
+            const difficulty = document.getElementById('difficulty').value;
+            const timeLimit = document.getElementById('time_limit').value;
+            formData.append('difficulty', difficulty);
+            formData.append('time_limit', timeLimit);
 
             try {
                 const res = await fetch(`${API_BASE}/upload`, {

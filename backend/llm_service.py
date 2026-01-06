@@ -76,12 +76,20 @@ def call_llm(prompt, provider="ollama", json_mode=False):
             print(f"Ollama Error: {e}")
             raise
 
-def generate_initial_question(resume_text, jd_text, provider="ollama"):
+def generate_initial_question(resume_text, jd_text, provider="ollama", difficulty="medium"):
     """Analyze resume and JD, generate the FIRST interview question."""
     
+    # Tone settings based on difficulty
+    tones = {
+        "low": "friendly, encouraging, and helpful. Start with a standard question to put them at ease.",
+        "medium": "professional, objective, and precise.",
+        "high": "skeptical, challenging, and detail-oriented. Test deep knowledge and edge cases."
+    }
+    tone_instruction = tones.get(difficulty, tones["medium"])
+
     if provider == "gemini":
-        # --- GEMINI MODE (Skeptical/Advanced) ---
-        print("Using Gemini Mode for Initial Question...")
+        # --- GEMINI MODE ---
+        print(f"Using Gemini Mode for Initial Question (Difficulty: {difficulty})...")
         
         # Step A: Get Targets
         target_prompt = f"""Analyze the Resume and JD. 
@@ -93,8 +101,9 @@ def generate_initial_question(resume_text, jd_text, provider="ollama"):
         
         interview_targets = call_llm(target_prompt, provider="gemini")
         
-        # Step B: Advanced Skeptical Prompt
-        prompt = f"""You are a senior technical interviewer conducting a real job interview.
+        # Step B: Adjusted Prompt
+        prompt = f"""You are a {difficulty.upper()} LEVEL technical interviewer conducting a job interview.
+Your persona is {tone_instruction}
 
 DATA:
 1. RESUME: {{ "content": "{resume_text.replace('"', "'")}" }}
@@ -102,9 +111,8 @@ DATA:
 3. INTERVIEW TARGETS: {interview_targets}
 
 STRICT RULES:
-- You are skeptical, precise, and detail-oriented.
 - Select exactly ONE target from the list.
-- Ask a specific, scenario-based question testing deep knowledge.
+- Ask a specific, scenario-based question.
 - NO generic questions like "Tell me about yourself".
 - NO multiple questions at once.
 - Output ONLY the spoken question.
@@ -112,7 +120,7 @@ STRICT RULES:
         return call_llm(prompt, provider="gemini")
         
     else:
-        # --- OLLAMA MODE (Standard/Fast) ---
+        # --- OLLAMA MODE ---
         # Truncate for local model
         max_len = 2000
         resume_short = resume_text[:max_len]
@@ -123,7 +131,9 @@ STRICT RULES:
         search_query = f"Senior technical interview questions for {role_title}"
         web_knowledge = get_internet_context(search_query)
         
-        prompt = f"""You are a Senior Technical Interviewer.
+        prompt = f"""You are a Technical Interviewer.
+Current Difficulty Level: {difficulty.upper()}
+Your Tone: {tone_instruction}
         
 DATA:
 RESUME: {resume_short}
@@ -137,12 +147,30 @@ Keep it under 50 words.
 """
         return call_llm(prompt, provider="ollama")
 
-def generate_interviewer_response(conversation_history, candidate_answer, resume_context="", provider="ollama"):
+def generate_interviewer_response(conversation_history, candidate_answer, resume_context="", provider="ollama", difficulty="medium", injected_question=None):
     """Generate the next question dynamically."""
     
+    # Tone settings based on difficulty
+    tones = {
+        "low": "friendly and helpful. If they are stuck, provide a hint. Maintain a supportive atmosphere.",
+        "medium": "professional. Dig deeper if the answer is vague, otherwise move on.",
+        "high": "skeptical and challenging. Scrutinize their answer for flaws. Do not offer hints."
+    }
+    tone_instruction = tones.get(difficulty, tones["medium"])
+
+    injection_instruction = ""
+    if injected_question:
+        injection_instruction = f"""
+        SPECIAL INSTRUCTION:
+        Instead of generating a new question from scratch, you MUST transition naturally to asking this specific question:
+        "{injected_question}"
+        Acknowledge their previous answer briefly, then ask this question.
+        """
+
     if provider == "gemini":
         # --- GEMINI MODE ---
-        prompt = f"""You are a Skeptical Senior Technical Interviewer.
+        prompt = f"""You are a {difficulty.upper()} LEVEL Technical Interviewer.
+Your persona is {tone_instruction}
 
 CONTEXT:
 {resume_context}
@@ -153,16 +181,16 @@ HISTORY:
 CANDIDATE ANSWER (Voice Transcription):
 "{candidate_answer}"
 
-NOTE: The candidate answer is transcribed from audio. It may contain phonetic errors (e.g. "Java script" -> "Java crypt"). 
+NOTE: The candidate answer is transcribed from audio. It may contain phonetic errors. 
 - IGNORE transcription typos if the meaning is clear from context.
-- Do NOT mention the transcription quality.
-- Do NOT ask for clarification on words that look like typos.
 
 TASK:
 1. Analyze the answer for depth and accuracy.
-2. If vague -> Drill down with "How" or "Why".
-3. If good -> Move to next topic.
-4. If wrong -> Challenge briefly.
+{injection_instruction}
+2. If NO special instruction above:
+   - If vague -> Drill down with "How" or "Why".
+   - If good -> Move to next topic.
+   - If wrong -> Correct or challenge based on difficulty.
 
 Output ONLY the spoken response. MAX 2 SENTENCES.
 """
@@ -174,13 +202,13 @@ Output ONLY the spoken response. MAX 2 SENTENCES.
         resume_context = resume_context[:1000]
         conversation_history = conversation_history[-2000:]
         
-        prompt = f"""Senior Interviewer.
+        prompt = f"""Interviewer Level: {difficulty.upper()}. Tone: {tone_instruction}
 CONTEXT: {resume_context}
 HISTORY: {conversation_history}
-ANSWER (Voice Transcription): "{candidate_answer}"
+ANSWER: "{candidate_answer}"
+{injection_instruction}
 
-NOTE: Ignore phonetic/transcription errors. Guess the technical term based on context.
-
+If NO special instruction:
 If answer is vague, ask "How specifically?".
 If answer is good, ask next technical question.
 Output ONLY the response. Max 2 sentences.
