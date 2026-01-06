@@ -150,8 +150,13 @@ CONTEXT:
 HISTORY:
 {conversation_history}
 
-CANDIDATE ANSWER:
+CANDIDATE ANSWER (Voice Transcription):
 "{candidate_answer}"
+
+NOTE: The candidate answer is transcribed from audio. It may contain phonetic errors (e.g. "Java script" -> "Java crypt"). 
+- IGNORE transcription typos if the meaning is clear from context.
+- Do NOT mention the transcription quality.
+- Do NOT ask for clarification on words that look like typos.
 
 TASK:
 1. Analyze the answer for depth and accuracy.
@@ -172,7 +177,9 @@ Output ONLY the spoken response. MAX 2 SENTENCES.
         prompt = f"""Senior Interviewer.
 CONTEXT: {resume_context}
 HISTORY: {conversation_history}
-ANSWER: "{candidate_answer}"
+ANSWER (Voice Transcription): "{candidate_answer}"
+
+NOTE: Ignore phonetic/transcription errors. Guess the technical term based on context.
 
 If answer is vague, ask "How specifically?".
 If answer is good, ask next technical question.
